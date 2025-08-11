@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SupportCam — Camera by Code (WebRTC)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    :root{
+      --md-surface:#ffffff;          /* white background */
+      --md-on-surface:#1f2937;       /* text on white */
+      --md-surface-variant:#f2f4f7;  /* subtle panels */
+      --md-outline:#e5e7eb;          /* borders */
+      --md-primary:#16a34a;          /* Material green */
+      --md-on-primary:#ffffff;       /* text on primary */
+      --md-primary-variant:#15803d;  /* darker hover */
+      --md-error:#dc2626;
+      --md-ok:#16a34a;
+      --radius:16px;                 /* large rounded corners */
+      --shadow-e1:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.08);
+      --shadow-e2:0 4px 10px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.06);
+      --shadow-e3:0 12px 24px rgba(0,0,0,.10),0 8px 12px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--md-surface);color:var(--md-on-surface);font:400 16px/1.5 Roboto, system-ui, -apple-system, Segoe UI, Arial, sans-serif}
+
+    /* Top App Bar */
+    .appbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--md-primary);color:var(--md-on-primary);box-shadow:var(--shadow-e2)}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e, #16a34a 55%, #15803d);box-shadow:0 10px 24px rgba(22,163,74,.35)}
+    .title{margin:0;font-size:18px;font-weight:700;letter-spacing:.25px}
+    .role-switch{display:flex;gap:8px}
+
+    /* Green action band with centered buttons */
+    .action-band{background:var(--md-primary);color:var(--md-on-primary);padding:18px 16px;text-align:center}
+    .action-band .seg{display:inline-flex;border:1px solid rgba(255,255,255,.25);border-radius:999px;overflow:hidden;box-shadow:var(--shadow-e1)}
+
+    /* Buttons */
+    .btn{appearance:none;border:1px solid var(--md-outline);background:#fff;color:var(--md-on-surface);border-radius:12px;padding:10px 14px;font-weight:500;cursor:pointer;transition:.18s transform,.18s box-shadow,.18s background}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:var(--md-on-primary);color:var(--md-primary);border-color:transparent}
+    .btn.tonal{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.24)}
+    .btn.tonal.active{background:#fff;color:var(--md-primary)}
+    .btn.filled{background:#fff;color:var(--md-primary);border-color:#fff}
+
+    /* Cards */
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+    .card{background:var(--md-surface);border:1px solid var(--md-outline);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-e1)}
+    .card h2{margin:0 0 12px 0;font-size:18px}
+    .hint{color:#6b7280;font-size:13px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    .stack-s{display:flex;flex-direction:column;gap:6px}
+    .kv{display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center}
+
+    input, select{border:1px solid var(--md-outline);background:#fff;color:var(--md-on-surface);border-radius:12px;padding:10px 12px;font-size:14px}
+
+    video{width:100%;height:auto;background:#000;border-radius:14px;box-shadow:var(--shadow-e2)}
+
+    .code{font:600 20px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;letter-spacing:1px;background:#f8fafc;border:1px dashed var(--md-outline);border-radius:12px;padding:10px 12px;color:#065f46;text-align:center}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--md-outline);padding:6px 10px;border-radius:999px;color:#475569;font-size:12px;background:#fff}
+    .badge{display:inline-block;background:#10b981;color:#fff;border-radius:8px;padding:4px 8px;font-size:12px}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .toolbar .btn{background:#fff;color:var(--md-primary);border-color:#c7ead4}
+    .toolbar .btn:hover{box-shadow:var(--shadow-e2)}
+    .btn.danger{color:#fff;background:#ef4444;border-color:#ef4444}
+    .btn.success{color:#fff;background:#22c55e;border-color:#22c55e}
+    .btn.ghost{background:#fff;color:#111827}
+
+    footer.footer{margin:24px auto;max-width:1100px;padding:12px 16px;color:#6b7280;font-size:12px}
+
+    /* Responsive */
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} .kv{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header class="appbar" role="banner">
+    <div class="brand"><div class="logo" aria-hidden="true"></div><h1 class="title">SupportCam — Camera by Code (WebRTC)</h1></div>
+    <div class="role-switch" aria-label="Role switch">
+      <button id="btnAdmin" class="btn filled" title="Admin mode">Admin</button>
+      <button id="btnClient" class="btn tonal" title="Client mode">Client</button>
+    </div>
+  </header>
+
+  <!-- Centered action buttons on green background -->
+  <section class="action-band" aria-label="Quick role switch">
+    <div class="seg" role="group" aria-label="Choose role">
+      <button id="segAdmin" class="btn tonal active" style="border-radius:999px 0 0 999px">Admin</button>
+      <button id="segClient" class="btn tonal" style="border-radius:0 999px 999px 0">Client</button>
+    </div>
+  </section>
+
+  <main class="wrap" role="main">
+    <div id="adminView" class="grid" aria-label="Admin panel">
+      <div class="card">
+        <h2>Client Stream</h2>
+        <video id="remoteVideo" playsinline autoplay muted></video>
+        <div class="toolbar" style="margin-top:12px">
+          <button id="btnConnect" class="btn success">Connect</button>
+          <button id="btnHangup" class="btn danger">Disconnect</button>
+          <button id="btnFullscreen" class="btn">Fullscreen</button>
+          <button id="btnSnapshot" class="btn">Snapshot PNG</button>
+        </div>
+        <div id="adminStatus" class="hint" style="margin-top:8px">Status: idle</div>
+      </div>
+      <div class="card">
+        <h2>Code & Invitation</h2>
+        <div class="stack">
+          <div class="kv"><div>Current Code</div><div class="row"><div id="adminCode" class="code copy" title="Click to copy"></div><span id="copied" class="badge" style="display:none">Copied</span></div></div>
+          <div class="kv"><div>Client Link</div><div class="row"><input id="inviteUrl" type="text" readonly/><button id="copyInvite" class="btn">Copy</button></div></div>
+          <div class="kv"><div>Quality</div>
+            <div class="row">
+              <select id="selResolution">
+                <option value="qvga">Low (up to 320×240)</option>
+                <option value="vga" selected>Standard (up to 640×480)</option>
+                <option value="hd">HD (up to 1280×720)</option>
+                <option value="fhd">Full HD (up to 1920×1080)</option>
+              </select>
+              <span class="pill">Tip: start with "Standard" for stability</span>
+            </div>
+          </div>
+          <div class="stack-s">
+            <button id="regenCode" class="btn">Generate New Code</button>
+            <span class="hint">One-time code: only one admin can connect per session.</span>
+          </div>
+          <div class="hint">Privacy: P2P WebRTC video, not recorded or stored. Signaling via public PeerJS Cloud.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="clientView" class="grid" style="display:none" aria-label="Client view">
+      <div class="card">
+        <h2>Your Video (what the specialist sees)</h2>
+        <video id="localVideo" playsinline autoplay muted></video>
+        <div class="toolbar" style="margin-top:12px">
+          <button id="btnStartClient" class="btn success">Start</button>
+          <button id="btnStopClient" class="btn danger">Stop</button>
+        </div>
+        <div id="clientStatus" class="hint" style="margin-top:8px">Status: camera not started</div>
+      </div>
+      <div class="card">
+        <h2>Connection</h2>
+        <div class="stack">
+          <div class="kv"><div>Code from Specialist</div><input id="clientCode" placeholder="e.g., 482-193" /></div>
+          <div class="kv"><div>Camera</div><select id="selCam"></select></div>
+          <div class="kv"><div>Quality</div>
+            <select id="selClientResolution">
+              <option value="qvga">Low (up to 320×240)</option>
+              <option value="vga" selected>Standard (up to 640×480)</option>
+              <option value="hd">HD (up to 1280×720)</option>
+              <option value="fhd">Full HD (up to 1920×1080)</option>
+            </select>
+          </div>
+          <div class="hint">After pressing "Start", your browser will ask for camera access. Please allow it.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    ⚙️ Tech: WebRTC + PeerJS Cloud (signaling), Google STUN. Works only over HTTPS. — 🔐 The client accepts an incoming call automatically only once per session.
+  </footer>
+
+  <!-- PeerJS from CDN -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>
+    // ===== Helpers =====
+    const $ = s => document.querySelector(s);
+    const randomCode = () => String(Math.floor(100000 + Math.random()*900000));
+    const fmtCode = c => c.replace(/\D/g,'').slice(0,6).replace(/(\d{3})(\d{0,3})/, (_,a,b)=> b?`${a}-${b}`:a);
+    const unfmtCode = c => c.replace(/\D/g,'').slice(0,6);
+
+    const constraintsByKey = (key) => ({
+      qvga:{ video:{ width:{max:320}, height:{max:240}, facingMode:'environment' }, audio:false },
+      vga:{  video:{ width:{max:640}, height:{max:480}, facingMode:'environment' }, audio:false },
+      hd:{   video:{ width:{max:1280}, height:{max:720}, facingMode:'environment' }, audio:false },
+      fhd:{  video:{ width:{max:1920}, height:{max:1080}, facingMode:'environment' }, audio:false }
+    }[key] || {video:true,audio:false});
+
+    const peerConfig = {
+      host:'peerjs.com', port:443, path:'/', secure:true,
+      config:{ iceServers:[ {urls:'stun:stun.l.google.com:19302'}, {urls:'stun:global.stun.twilio.com:3478?transport=udp'} ] }
+    };
+
+    // ===== Admin =====
+    let admin = { peer:null, call:null, currentCode:null, resolution:'vga' };
+    const setAdminStatus = t => $('#adminStatus').textContent = 'Status: ' + t;
+    const updateInvite = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('role','client');
+      url.searchParams.set('code', admin.currentCode);
+      $('#inviteUrl').value = url.toString();
+      $('#adminCode').textContent = fmtCode(admin.currentCode);
+    };
+    const initAdmin = () => {
+      admin.currentCode = unfmtCode(new URLSearchParams(location.search).get('code') || randomCode());
+      $('#selResolution').value = admin.resolution;
+      updateInvite();
+      setAdminStatus('ready to connect');
+    };
+    const adminCreatePeer = () => {
+      if (admin.peer && !admin.peer.destroyed) return admin.peer;
+      admin.peer = new Peer('admin-' + admin.currentCode, peerConfig);
+      admin.peer.on('open', () => setAdminStatus('waiting for client ('+fmtCode(admin.currentCode)+')'));
+      admin.peer.on('error', e => setAdminStatus('Peer error: ' + e.type));
+      admin.peer.on('disconnected', () => setAdminStatus('disconnected from signaling'));
+      return admin.peer;
+    };
+    const adminConnect = () => {
+      const peer = adminCreatePeer();
+      const targetId = 'client-' + admin.currentCode;
+      try{
+        admin.call = peer.call(targetId, undefined, {metadata:{role:'admin'}});
+        if(!admin.call){ setAdminStatus('failed to start call'); return; }
+        admin.call.on('stream', stream => {
+          const v = $('#remoteVideo');
+          v.srcObject = stream; v.play().catch(()=>{});
+          setAdminStatus('video received ✅');
+        });
+        admin.call.on('close', () => setAdminStatus('call ended'));
+        admin.call.on('error', e => setAdminStatus('call error: ' + e.type));
+      }catch(e){ setAdminStatus('error: ' + e.message); }
+    };
+    const adminHangup = () => { if(admin.call){ try{admin.call.close();}catch(_){} } setAdminStatus('call ended'); };
+    const snapshot = () => {
+      const video = $('#remoteVideo');
+      if(!video || !video.videoWidth){ alert('No video to capture'); return; }
+      const c = document.createElement('canvas'); c.width=video.videoWidth; c.height=video.videoHeight;
+      c.getContext('2d').drawImage(video,0,0);
+      c.toBlob(b=>{ const a=document.createElement('a'); const ts=new Date().toISOString().replace(/[:.]/g,'-'); a.href=URL.createObjectURL(b); a.download=`snapshot-${fmtCode(admin.currentCode)}-${ts}.png`; a.click(); URL.revokeObjectURL(a.href); }, 'image/png');
+    };
+
+    // ===== Client =====
+    let client = { peer:null, localStream:null, locked:false, resolution:'vga' };
+    const setClientStatus = t => $('#clientStatus').textContent = 'Status: ' + t;
+    const listCameras = async () => {
+      try{
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter(d=>d.kind==='videoinput');
+        const sel = $('#selCam'); sel.innerHTML='';
+        cams.forEach((d,i)=>{ const opt=document.createElement('option'); opt.value=d.deviceId; opt.textContent=d.label||`Camera ${i+1}`; sel.appendChild(opt); });
+      }catch(e){ /* ignore */ }
+    };
+    const clientStart = async () => {
+      const code = unfmtCode($('#clientCode').value.trim());
+      if(code.length!==6){ alert('Enter a valid 6-digit code'); return; }
+      client.resolution = $('#selClientResolution').value;
+      try{
+        const camId = $('#selCam').value || undefined;
+        const base = constraintsByKey(client.resolution);
+        if(camId) base.video.deviceId = { exact: camId };
+        client.localStream = await navigator.mediaDevices.getUserMedia(base);
+        $('#localVideo').srcObject = client.localStream; await $('#localVideo').play();
+      }catch(e){ setClientStatus('camera access error: ' + e.message); return; }
+      try{
+        client.peer = new Peer('client-' + code, peerConfig);
+      }catch(e){ setClientStatus('Peer init error: ' + e.message); return; }
+      client.peer.on('open', () => setClientStatus('waiting for specialist…'));
+      client.peer.on('error', err => setClientStatus('Peer error: ' + err.type));
+      client.peer.on('call', call => {
+        if(client.locked){ try{call.close();}catch(_){} return; }
+        client.locked = true; call.answer(client.localStream);
+        setClientStatus('specialist connected ✅');
+        call.on('close', ()=> setClientStatus('session ended'));
+        call.on('error', ()=> setClientStatus('connection error'));
+      });
+    };
+    const clientStop = () => {
+      if(client.peer && !client.peer.destroyed) client.peer.destroy();
+      if(client.localStream){ client.localStream.getTracks().forEach(t=>t.stop()); }
+      client.locked=false; setClientStatus('camera stopped'); $('#localVideo').srcObject=null;
+    };
+
+    // ===== UI wiring =====
+    const switchRole = role => {
+      if(role==='admin'){
+        $('#adminView').style.display=''; $('#clientView').style.display='none';
+        $('#btnAdmin').classList.add('filled'); $('#btnAdmin').classList.remove('tonal');
+        $('#btnClient').classList.add('tonal'); $('#btnClient').classList.remove('filled');
+        $('#segAdmin').classList.add('active'); $('#segClient').classList.remove('active');
+      }else{
+        $('#adminView').style.display='none'; $('#clientView').style.display='';
+        $('#btnClient').classList.add('filled'); $('#btnClient').classList.remove('tonal');
+        $('#btnAdmin').classList.add('tonal'); $('#btnAdmin').classList.remove('filled');
+        $('#segClient').classList.add('active'); $('#segAdmin').classList.remove('active');
+      }
+    };
+
+    document.getElementById('btnAdmin').onclick=()=>switchRole('admin');
+    document.getElementById('btnClient').onclick=()=>switchRole('client');
+    document.getElementById('segAdmin').onclick=()=>switchRole('admin');
+    document.getElementById('segClient').onclick=()=>switchRole('client');
+
+    document.getElementById('btnConnect').onclick=adminConnect;
+    document.getElementById('btnHangup').onclick=adminHangup;
+    document.getElementById('btnFullscreen').onclick=()=>$('#remoteVideo').requestFullscreen().catch(()=>{});
+    document.getElementById('btnSnapshot').onclick=snapshot;
+    document.getElementById('regenCode').onclick=()=>{
+      admin.currentCode = randomCode(); updateInvite(); setAdminStatus('code updated, waiting for client');
+      if(admin.peer && !admin.peer.destroyed) admin.peer.destroy(); admin.peer=null;
+    };
+
+    document.getElementById('adminCode').onclick=async()=>{
+      try{ await navigator.clipboard.writeText(fmtCode(admin.currentCode)); $('#copied').style.display='inline-block'; setTimeout(()=>$('#copied').style.display='none',1200);}catch(_){}
+    };
+    document.getElementById('copyInvite').onclick=async()=>{ try{ await navigator.clipboard.writeText($('#inviteUrl').value);}catch(_){} };
+
+    document.getElementById('btnStartClient').onclick=clientStart;
+    document.getElementById('btnStopClient').onclick=clientStop;
+
+    (async function init(){
+      const sp = new URLSearchParams(location.search);
+      const role = sp.get('role') || 'admin';
+      switchRole(role==='client'?'client':'admin');
+      // Admin
+      admin.currentCode = unfmtCode(sp.get('code') || randomCode());
+      updateInvite(); setAdminStatus('ready to connect');
+      // Client helpers
+      const code = sp.get('code'); if(code){ $('#clientCode').value = fmtCode(code); }
+      if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        try{ await navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(s=>s.getTracks().forEach(t=>t.stop())).catch(()=>{}); }catch(_){}
+        await (async()=>{ // list cameras
+          try{ const devices = await navigator.mediaDevices.enumerateDevices(); const cams = devices.filter(d=>d.kind==='videoinput'); const sel=$('#selCam'); sel.innerHTML=''; cams.forEach((d,i)=>{ const opt=document.createElement('option'); opt.value=d.deviceId; opt.textContent=d.label||`Camera ${i+1}`; sel.appendChild(opt); }); }catch(e){}
+        })();
+      }else{
+        $('#clientStatus').innerHTML = 'Your browser does not support camera access in the web. Use a modern browser (Safari/Chrome/Edge).';
+      }
+    })();
+  </script>
+</body>
+</html>
